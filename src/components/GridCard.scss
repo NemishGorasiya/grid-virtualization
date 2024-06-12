@@ -1,0 +1,23 @@
+.grid-card {
+  border: 1px solid grey;
+  display: flex;
+  flex-direction: column;
+
+  .product-image-wrapper {
+    width: 100%;
+    aspect-ratio: 1/1;
+    display: flex;
+
+    .product-image {
+      height: 100%;
+      width: 100%;
+      min-height: 100%;
+      object-fit: cover;
+    }
+  }
+  .productDetailsWrapper {
+    padding: 8px;
+    background: rgba(172, 151, 151, 0.402);
+    flex: 1;
+  }
+}
