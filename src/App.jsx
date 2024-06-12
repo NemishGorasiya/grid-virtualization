@@ -1,10 +1,10 @@
 import "./App.scss";
-import Products from "./components/Products";
+import ProductsGrid from "./components/ProductsGrid";
 
 function App() {
   return (
     <>
-      <Products />
+      <ProductsGrid />
     </>
   );
 }

@@ -4,7 +4,6 @@ import { httpRequest } from "../services/service";
 import { AutoSizer, Grid, InfiniteLoader } from "react-virtualized";
 import ProductCard from "./ProductCard";
 import { productCategories } from "../utils/constants";
-import { sortArrayOfObject } from "../utils/helpers";
 
 const NAME_ASC = "nameAsc";
 const NAME_DESC = "nameDesc";
@@ -20,19 +19,20 @@ const Products = () => {
     hasMore: false,
   });
   const [category, setCategory] = useState(null);
+
   const [queryParamsState, setQueryParamsState] = useState({
-    limit: 20,
     sortBy: undefined,
     order: undefined,
   });
 
   const onRowsRenderedRef = useRef(null);
 
-  const { limit } = queryParamsState;
+  const limit = 3;
 
   const { list, isLoading, hasMore } = products;
 
   const columnCount = 6;
+  const rowCount = Math.ceil(list.length / columnCount) + 1;
 
   const getProducts = useCallback(
     async ({
@@ -51,7 +51,7 @@ const Products = () => {
           : "https://dummyjson.com/products";
         const res = await httpRequest({
           url,
-          queryParams,
+          queryParams: { limit, ...queryParams },
           abortController,
         });
         if (res) {
@@ -59,7 +59,7 @@ const Products = () => {
           setProducts((prevProducts) => ({
             list: isAppendingData
               ? [...prevProducts.list, ...products]
-              : products,
+              : [...products],
             isLoading: false,
             hasMore: prevProducts.list.length + products.length < total,
           }));
@@ -72,53 +72,58 @@ const Products = () => {
   );
 
   const isRowLoaded = ({ index }) => {
-    return !!list[index];
+    console.log("is row loaded", index, !!list[(index + 1) * columnCount + 1]);
+    return !!list[index * columnCount];
   };
 
-  const loadMoreRows = useCallback(({ startIndex, stopIndex }) => {
-    console.log("start idx", startIndex);
-    console.log("stop idx", stopIndex);
-  }, []);
-
-  const onSectionRendered = useCallback(
-    ({ columnStartIndex, columnStopIndex, rowStartIndex, rowStopIndex }) => {
-      const startIndex =
-        (Math.floor(rowStopIndex * columnCount) / limit) * limit;
-      const stopIndex =
-        (Math.floor((rowStopIndex * columnCount) / limit) + 1) * limit;
-
-      if (
-        (rowStopIndex + 1) * columnCount >= list.length &&
-        hasMore &&
-        !isLoading
-      ) {
+  const loadMoreRows = useCallback(
+    ({ startIndex, stopIndex }) => {
+      const endIndex = stopIndex + columnCount * 2;
+      if (hasMore) {
         getProducts({
           category,
           queryParams: {
             ...queryParamsState,
-            skip: stopIndex,
+            skip: list.length,
           },
           isAppendingData: true,
         });
       }
+    },
+    [category, getProducts, hasMore, list.length, queryParamsState]
+  );
+
+  const onSectionRendered = useCallback(
+    ({ columnStartIndex, columnStopIndex, rowStartIndex, rowStopIndex }) => {
+      console.log(
+        columnStartIndex,
+        columnStopIndex,
+        rowStartIndex,
+        rowStopIndex
+      );
       if (onRowsRenderedRef.current) {
-        onRowsRenderedRef.current({ startIndex, stopIndex });
+        onRowsRenderedRef.current({
+          startIndex: rowStartIndex,
+          stopIndex: rowStopIndex,
+        });
       }
     },
-    [
-      category,
-      getProducts,
-      hasMore,
-      isLoading,
-      limit,
-      list.length,
-      queryParamsState,
-    ]
+    []
   );
 
   const handleFilterButtonClick = useCallback(
     (category) => {
+      if (onRowsRenderedRef.current) {
+        onRowsRenderedRef.current({
+          startIndex: 0,
+          stopIndex: 0,
+        });
+      }
       setCategory(category);
+      setProducts((prev) => ({
+        ...prev,
+        list: [],
+      }));
       getProducts({
         category,
         queryParams: queryParamsState,
@@ -165,9 +170,11 @@ const Products = () => {
       ...prevQueryParams,
       sortBy,
       order,
-      limit: list.length,
     }));
-
+    setProducts((prev) => ({
+      ...prev,
+      list: [],
+    }));
     getProducts({
       category,
       queryParams: {
@@ -193,6 +200,10 @@ const Products = () => {
     [list]
   );
 
+  //   const noContentRenderer = useCallback(() => {
+  //     return <>hello</>;
+  //   }, []);
+  console.log("row ", rowCount);
   useEffect(() => {
     const abortController = new AbortController();
     getProducts({ abortController });
@@ -233,14 +244,14 @@ const Products = () => {
         <option value={RATING_DESC}>Rating High-Low</option>
       </select>
 
-      <div style={{ height: "calc(100vh - 118px)" }}>
+      <div style={{ height: "calc(100vh - 177px)" }}>
         <AutoSizer>
           {({ width, height }) => (
             <InfiniteLoader
               isRowLoaded={isRowLoaded}
               loadMoreRows={loadMoreRows}
-              rowCount={Math.ceil(list.length / columnCount)}
-              threshold={2}
+              rowCount={rowCount}
+              threshold={3}
             >
               {({ onRowsRendered, registerChild }) => {
                 onRowsRenderedRef.current = onRowsRendered;
@@ -250,10 +261,12 @@ const Products = () => {
                     columnCount={columnCount}
                     columnWidth={200}
                     onSectionRendered={onSectionRendered}
-                    ref={registerChild}
+                    ref={(ref) => {
+                      registerChild(ref);
+                    }}
                     height={height}
                     width={width}
-                    rowCount={Math.ceil(list.length / columnCount)}
+                    rowCount={rowCount}
                     rowHeight={400}
                   />
                 );
