@@ -27,6 +27,7 @@ const ProductsGrid = () => {
   const { list, isLoading, hasMore } = products;
   const onRowsRenderedRef = useRef(null);
   const infiniteLoaderRef = useRef(null);
+
   const columnCount = 6;
   const [stopIndex, setStopIndex] = useState(0);
   const rowCount = list.length ? Math.ceil(list.length / columnCount) + 1 : 1;
@@ -241,6 +242,7 @@ const ProductsGrid = () => {
       >
         All
       </button>
+
       {productCategories.map((category) => (
         <button
           key={category.name}
@@ -252,6 +254,7 @@ const ProductsGrid = () => {
           {category.name}
         </button>
       ))}
+
       <select onChange={handleSorting} defaultValue={undefined}>
         <option value="null">Sort Products</option>
         <option value={NAME_ASC}>Name A-Z</option>
@@ -261,6 +264,7 @@ const ProductsGrid = () => {
         <option value={RATING_ASC}>Rating Low-High</option>
         <option value={RATING_DESC}>Rating High-Low</option>
       </select>
+
       <div style={{ height: "100vh" }}>
         <InfiniteLoader
           isRowLoaded={isRowLoaded}
