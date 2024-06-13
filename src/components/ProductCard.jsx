@@ -1,7 +1,6 @@
-import { memo } from "react";
 import "./ProductCard.scss";
 
-const ProductCard = memo(({ product }) => {
+const ProductCard = ({ product }) => {
   const { title, category, price, rating, thumbnail } = product || {};
   return (
     <div className="grid-card">
@@ -16,8 +15,6 @@ const ProductCard = memo(({ product }) => {
       </div>
     </div>
   );
-});
-
-ProductCard.displayName = "ProductCard";
+};
 
 export default ProductCard;
