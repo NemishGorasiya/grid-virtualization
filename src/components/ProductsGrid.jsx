@@ -30,10 +30,10 @@ const ProductsGrid = () => {
     sortBy: undefined,
     order: undefined,
   });
+  const [_abortController, setAbortController] = useState(null);
   const { list, isLoading, hasMore } = products;
   const onRowsRenderedRef = useRef(null);
   const infiniteLoaderRef = useRef(null);
-  const gridRef = useRef(null);
 
   const [stopIndex, setStopIndex] = useState(0);
 
@@ -52,10 +52,9 @@ const ProductsGrid = () => {
 
   const isRowLoaded = useCallback(
     ({ index }) => {
-      if (isLoading) {
+      if (isLoading && !hasMore) {
         return;
       }
-      console.log("is row loaded", "index", index);
       const columnCount = calculateColumnCount(
         document.documentElement.clientWidth
       );
@@ -63,18 +62,15 @@ const ProductsGrid = () => {
       const end = start + columnCount;
       for (let i = start; i < end; i++) {
         if (i >= list.length) {
-          console.log(false);
           return false;
         }
         if (!list[i]) {
-          console.log(false);
           return false;
         }
       }
-      console.log(true);
       return true;
     },
-    [isLoading, list]
+    [hasMore, isLoading, list]
   );
 
   const getProducts = useCallback(
@@ -104,15 +100,15 @@ const ProductsGrid = () => {
               ? [...prevProducts.list, ...products]
               : [...products];
             const hasMore = newList.length < total;
+
+            // for forcefully update grid when row counts are same before and after adding data in grid
             const columnCount = calculateColumnCount(
               document.documentElement.clientWidth
             );
             const oldRowCount = Math.ceil(
               prevProducts.list.length / columnCount
             );
-
             const newRowCount = Math.ceil(newList.length / columnCount);
-
             if (oldRowCount === newRowCount && hasMore) {
               setStopIndex(newRowCount);
             }
@@ -120,21 +116,26 @@ const ProductsGrid = () => {
             return {
               list: newList,
               isLoading: false,
-              hasMore,
+              hasMore: hasMore,
             };
           });
         }
       } catch (error) {
         console.error(error);
+        setProducts((prevProducts) => ({
+          ...prevProducts,
+          isLoading: false,
+        }));
       }
     },
     []
   );
 
   const loadMoreRows = useCallback(
-    ({ startIndex, stopIndex }) => {
-      console.log("load more ", "start", startIndex, "stop", stopIndex);
-      console.log("has more", hasMore);
+    ({ startIndex }) => {
+      if (isLoading) {
+        return;
+      }
       if (hasMore) {
         const columnCount = calculateColumnCount(
           document.documentElement.clientWidth
@@ -145,11 +146,9 @@ const ProductsGrid = () => {
         for (let index = start; index < end; index++) {
           if (!list[index]) {
             skip = index;
-            console.log("skip idx", index);
             break;
           }
         }
-        console.log("skip index", skip);
         getProducts({
           category,
           queryParams: {
@@ -159,18 +158,11 @@ const ProductsGrid = () => {
         });
       }
     },
-    [category, getProducts, hasMore, list, queryParamsState]
+    [category, getProducts, hasMore, isLoading, list, queryParamsState]
   );
 
   const onSectionRendered = ({ rowStartIndex, rowStopIndex }) => {
-    console.log(
-      "on section renders",
-      "rowStartIndex",
-      rowStartIndex,
-      "rowStopIndex",
-      rowStopIndex
-    );
-    if (isLoading) {
+    if (isLoading || !hasMore) {
       return;
     }
     onRowsRenderedRef.current({
@@ -182,6 +174,7 @@ const ProductsGrid = () => {
   const cellRenderer = ({ key, parent, rowIndex, columnIndex, style }) => {
     const columnCount = calculateColumnCount(parent.props.width);
     const product = list[rowIndex * columnCount + columnIndex];
+
     if (!product) {
       return null;
     }
@@ -210,22 +203,30 @@ const ProductsGrid = () => {
         list: [],
       }));
       setCategory(category);
+      if (infiniteLoaderRef.current) {
+        infiniteLoaderRef.current.resetLoadMoreRowsCache();
+      }
+      // if (onRowsRenderedRef.current) {
+      //   onRowsRenderedRef.current({
+      //     startIndex: 0,
+      //     stopIndex,
+      //   });
+      // }
+      const newAbortController = new AbortController();
+      setAbortController((prevAbortController) => {
+        if (prevAbortController) {
+          prevAbortController.abort();
+        }
+        return newAbortController;
+      });
       getProducts({
+        abortController: newAbortController,
         category,
         queryParams: { ...queryParamsState },
         isAppending: false,
       });
-      if (infiniteLoaderRef.current) {
-        infiniteLoaderRef.current.resetLoadMoreRowsCache();
-      }
-      if (onRowsRenderedRef.current) {
-        onRowsRenderedRef.current({
-          startIndex: 0,
-          stopIndex,
-        });
-      }
     },
-    [getProducts, queryParamsState, stopIndex]
+    [getProducts, queryParamsState]
   );
 
   const handleSorting = (event) => {
@@ -271,7 +272,15 @@ const ProductsGrid = () => {
       ...prev,
       list: [],
     }));
+    const newAbortController = new AbortController();
+    setAbortController((prevAbortController) => {
+      if (prevAbortController) {
+        prevAbortController.abort();
+      }
+      return newAbortController;
+    });
     getProducts({
+      abortController: newAbortController,
       category,
       queryParams: {
         ...queryParamsState,
@@ -282,14 +291,17 @@ const ProductsGrid = () => {
     });
   };
 
+  // initial data call
   useEffect(() => {
-    const abortController = new AbortController();
-    getProducts({ abortController });
+    const newAbortController = new AbortController();
+    setAbortController(newAbortController);
+    getProducts({ abortController: newAbortController });
     return () => {
-      abortController.abort();
+      newAbortController.abort();
     };
   }, [getProducts]);
 
+  // for force-fully data update when row counts are same before and after adding cells in grid
   useEffect(() => {
     if (infiniteLoaderRef.current) {
       infiniteLoaderRef.current.resetLoadMoreRowsCache();
@@ -302,6 +314,7 @@ const ProductsGrid = () => {
     }
   }, [stopIndex]);
 
+  // clear cache on resizing screen fro smooth user experience
   useEffect(() => {
     window.addEventListener("resize", () => {
       cache.clearAll();
@@ -312,6 +325,27 @@ const ProductsGrid = () => {
       });
     };
   }, [cache]);
+
+  // clear cache on changing category
+  useEffect(() => {
+    cache.clearAll();
+    if (infiniteLoaderRef.current) {
+      infiniteLoaderRef.current.resetLoadMoreRowsCache();
+    }
+    if (onRowsRenderedRef.current) {
+      onRowsRenderedRef.current({
+        startIndex: 0,
+        stopIndex,
+      });
+    }
+  }, [cache, category, stopIndex]);
+
+  // useEffect(() => {
+  //   setProducts((prevProducts) => ({
+  //     ...prevProducts,
+  //     list: [],
+  //   }));
+  // }, [category]);
 
   return (
     <>
@@ -354,50 +388,46 @@ const ProductsGrid = () => {
         </select>
       </div>
 
-      <div>
-        <WindowScroller>
-          {({ height, scrollTop }) => {
-            const width = document.documentElement.clientWidth;
-            return (
-              <InfiniteLoader
-                isRowLoaded={isRowLoaded}
-                loadMoreRows={loadMoreRows}
-                rowCount={
-                  Math.ceil(list.length / calculateColumnCount(width)) + 1
-                }
-                threshold={1}
-                ref={infiniteLoaderRef}
-              >
-                {({ onRowsRendered, registerChild }) => {
-                  console.log("width ", width);
-                  onRowsRenderedRef.current = onRowsRendered;
-                  const columnCount = calculateColumnCount(width);
-                  const rowCount = Math.ceil(list.length / columnCount) + 1;
+      <WindowScroller>
+        {({ height, scrollTop }) => {
+          const width = document.documentElement.clientWidth;
+          return (
+            <InfiniteLoader
+              isRowLoaded={isRowLoaded}
+              loadMoreRows={loadMoreRows}
+              rowCount={
+                Math.ceil(list.length / calculateColumnCount(width)) + 1
+              }
+              threshold={1}
+              ref={infiniteLoaderRef}
+            >
+              {({ onRowsRendered, registerChild }) => {
+                onRowsRenderedRef.current = onRowsRendered;
+                const columnCount = calculateColumnCount(width);
+                const rowCount = Math.ceil(list.length / columnCount) + 1;
 
-                  return (
-                    <Grid
-                      autoHeight
-                      scrollTop={scrollTop}
-                      width={width}
-                      height={height}
-                      ref={(grid) => {
-                        gridRef.current = grid;
-                        registerChild(grid);
-                      }}
-                      columnWidth={width / columnCount}
-                      columnCount={columnCount}
-                      rowCount={rowCount}
-                      rowHeight={cache.rowHeight}
-                      cellRenderer={cellRenderer}
-                      onSectionRendered={onSectionRendered}
-                    />
-                  );
-                }}
-              </InfiniteLoader>
-            );
-          }}
-        </WindowScroller>
-      </div>
+                return (
+                  <Grid
+                    autoHeight
+                    scrollTop={scrollTop}
+                    width={width}
+                    height={height}
+                    ref={(grid) => {
+                      registerChild(grid);
+                    }}
+                    columnWidth={width / columnCount}
+                    columnCount={columnCount}
+                    rowCount={rowCount}
+                    rowHeight={cache.rowHeight}
+                    cellRenderer={cellRenderer}
+                    onSectionRendered={onSectionRendered}
+                  />
+                );
+              }}
+            </InfiniteLoader>
+          );
+        }}
+      </WindowScroller>
     </>
   );
 };
