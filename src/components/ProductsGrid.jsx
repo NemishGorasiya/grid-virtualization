@@ -206,12 +206,12 @@ const ProductsGrid = () => {
       if (infiniteLoaderRef.current) {
         infiniteLoaderRef.current.resetLoadMoreRowsCache();
       }
-      // if (onRowsRenderedRef.current) {
-      //   onRowsRenderedRef.current({
-      //     startIndex: 0,
-      //     stopIndex,
-      //   });
-      // }
+      if (onRowsRenderedRef.current) {
+        onRowsRenderedRef.current({
+          startIndex: 0,
+          stopIndex,
+        });
+      }
       const newAbortController = new AbortController();
       setAbortController((prevAbortController) => {
         if (prevAbortController) {
@@ -339,13 +339,6 @@ const ProductsGrid = () => {
       });
     }
   }, [cache, category, stopIndex]);
-
-  // useEffect(() => {
-  //   setProducts((prevProducts) => ({
-  //     ...prevProducts,
-  //     list: [],
-  //   }));
-  // }, [category]);
 
   return (
     <>
