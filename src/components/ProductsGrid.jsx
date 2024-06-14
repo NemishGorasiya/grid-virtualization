@@ -107,12 +107,11 @@ const ProductsGrid = () => {
             const columnCount = calculateColumnCount(
               document.documentElement.clientWidth
             );
-            const oldRowCount = prevProducts.list.length
-              ? Math.ceil(prevProducts.list.length / columnCount)
-              : 1;
-            const newRowCount = newList.length
-              ? Math.ceil(newList.length / columnCount)
-              : 1;
+            const oldRowCount = Math.ceil(
+              prevProducts.list.length / columnCount
+            );
+
+            const newRowCount = Math.ceil(newList.length / columnCount);
 
             if (oldRowCount === newRowCount && hasMore) {
               setStopIndex(newRowCount);
@@ -219,8 +218,14 @@ const ProductsGrid = () => {
       if (infiniteLoaderRef.current) {
         infiniteLoaderRef.current.resetLoadMoreRowsCache();
       }
+      if (onRowsRenderedRef.current) {
+        onRowsRenderedRef.current({
+          startIndex: 0,
+          stopIndex,
+        });
+      }
     },
-    [getProducts, queryParamsState]
+    [getProducts, queryParamsState, stopIndex]
   );
 
   const handleSorting = (event) => {
@@ -358,9 +363,7 @@ const ProductsGrid = () => {
                 isRowLoaded={isRowLoaded}
                 loadMoreRows={loadMoreRows}
                 rowCount={
-                  list.length
-                    ? Math.ceil(list.length / calculateColumnCount(width)) + 1
-                    : 1
+                  Math.ceil(list.length / calculateColumnCount(width)) + 1
                 }
                 threshold={1}
                 ref={infiniteLoaderRef}
@@ -369,9 +372,8 @@ const ProductsGrid = () => {
                   console.log("width ", width);
                   onRowsRenderedRef.current = onRowsRendered;
                   const columnCount = calculateColumnCount(width);
-                  const rowCount = list.length
-                    ? Math.ceil(list.length / columnCount) + 1
-                    : 1;
+                  const rowCount = Math.ceil(list.length / columnCount) + 1;
+
                   return (
                     <Grid
                       autoHeight
