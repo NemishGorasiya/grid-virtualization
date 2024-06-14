@@ -226,7 +226,7 @@ const ProductsGrid = () => {
         isAppending: false,
       });
     },
-    [getProducts, queryParamsState]
+    [getProducts, queryParamsState, stopIndex]
   );
 
   const handleSorting = (event) => {
