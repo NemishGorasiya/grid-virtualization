@@ -314,7 +314,7 @@ const ProductsGrid = () => {
     }
   }, [stopIndex]);
 
-  // clear cache on resizing screen fro smooth user experience
+  // clear cache on resizing screen for smooth user experience
   useEffect(() => {
     window.addEventListener("resize", () => {
       cache.clearAll();
