@@ -8,10 +8,10 @@ const ProductCard = ({ product }) => {
         <img className="product-image" src={thumbnail} alt="product image" />
       </div>
       <div className="product-details-Wrapper">
-        <div>{title}</div>
-        <div>{category}</div>
-        <div>$ {price}</div>
-        <div>{rating} Rating</div>
+        <div className="products-detail">{title}</div>
+        <div className="products-detail">{category}</div>
+        <div className="products-detail">$ {price}</div>
+        <div className="products-detail">{rating} Rating</div>
       </div>
     </div>
   );

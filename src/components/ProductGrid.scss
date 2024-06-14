@@ -7,5 +7,25 @@
   .filter-button {
     margin: 10px;
     padding: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    background: skyblue;
+    transition: transform 0.1s ease;
+
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+  .filter-button.active-category {
+    background: rgb(61, 74, 129);
+    color: #fff;
+  }
+
+  .sort-select {
+    margin: 10px;
+    padding: 10px;
+    cursor: pointer;
   }
 }

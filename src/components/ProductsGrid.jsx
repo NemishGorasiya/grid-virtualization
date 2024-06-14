@@ -40,7 +40,7 @@ const ProductsGrid = () => {
   const cache = useMemo(
     () =>
       new CellMeasurerCache({
-        defaultHeight: 300,
+        defaultHeight: 340,
         fixedWidth: true,
       }),
     []
@@ -315,24 +315,30 @@ const ProductsGrid = () => {
           onClick={() => {
             handleFilterButtonClick(null);
           }}
-          className="filter-button"
+          className={`filter-button ${!category ? "active-category" : ""}`}
         >
           All
         </button>
 
-        {productCategories.map((category) => (
+        {productCategories.map((productCategory) => (
           <button
-            key={category.name}
+            key={productCategory.name}
             onClick={() => {
-              handleFilterButtonClick(category.slug);
+              handleFilterButtonClick(productCategory.slug);
             }}
-            className="filter-button"
+            className={`filter-button ${
+              productCategory.slug === category ? "active-category" : ""
+            }`}
           >
-            {category.name}
+            {productCategory.name}
           </button>
         ))}
 
-        <select onChange={handleSorting} defaultValue={undefined}>
+        <select
+          className="sort-select"
+          onChange={handleSorting}
+          defaultValue={undefined}
+        >
           <option value="null">Sort Products</option>
           <option value={NAME_ASC}>Name A-Z</option>
           <option value={NAME_DESC}>Name Z-A</option>
